@@ -1,17 +1,14 @@
 import './Produtos.css';
 
-import choc_belga from "../../assets/imgs/choc-belga.png";
-import choc_ninho from "../../assets/imgs/choc-ninho.png";
-import senolra_choc from "../../assets/imgs/cenoura-choc.png";
-import choc_ninho_morango from "../../assets/imgs/choc-ninho-morango.png";
-import choc_pistache from "../../assets/imgs/choc-pistache.png";
-import choc_oreo from "../../assets/imgs/choc-oreo.png";
+
 import whatszap from "../../assets/whatsapp.png";
 import { useEffect, useState } from 'react';
 import type { Bolo } from '../../types/bolo';
 import { getBolos } from '../../services/bolosService';
 import CardProduto from '../../components/CardProduto/CardProduto';
 import Carrossel from '../../components/Carrossel/Carrossel';
+import Header from '../../components/Header/Header';
+import { useLocation } from 'react-router-dom';
 
 
 // funções assincromas
@@ -19,12 +16,25 @@ import Carrossel from '../../components/Carrossel/Carrossel';
 export default function Produtos() {
 
     const [bolos, setBolos] = useState<Bolo[]>([]);
+    const location = useLocation();
+
+    const parametrosPesquisados = new URLSearchParams(location.search);
+    const termo_pesquisado = parametrosPesquisados.get('query');
 
     const fatchBolos = async () => {
         try {
             const dados = await getBolos();
-            console.log('Dados retornados de API: ', dados);
-            setBolos(dados);
+            if (termo_pesquisado) {
+                const dados_filtrados = dados.filter(b =>
+                    b.nome.toLowerCase().includes(termo_pesquisado.toLocaleLowerCase()) ||
+                    b.descricao.toLowerCase().includes(termo_pesquisado.toLocaleLowerCase()) ||
+                    b.categorias.some(cat => cat.toLowerCase().includes(termo_pesquisado.toLowerCase()))
+                )
+                setBolos(dados_filtrados)
+            } else {
+                console.log('Dados retornados de API: ', dados);
+                setBolos(dados);
+            }
         } catch (error) {
             console.error("Erro ao executar getBolos", error)
         }
@@ -32,39 +42,48 @@ export default function Produtos() {
 
     useEffect(() => {
         fatchBolos();
-    }, [])
+        console.log("Termo pesquisado: ", termo_pesquisado);
+    }, [termo_pesquisado])
 
 
     return (
-        <main>
-            <Carrossel />
+        <>
+            <Header />
+            <main>
+                <Carrossel />
 
-            <section className="conteiner_produto">
-                <h1 className="acessivel">produtos de chocolate</h1>
-                <div className="titulo">
-                    <span>Chocolate</span>
-                    <hr />
-                </div>
+                <section className="conteiner_produto">
+                    <h1 className="acessivel">produtos de chocolate</h1>
+                    <div className="titulo">
+                        <span>
+                            {
+                                termo_pesquisado ? `Resultados para: ${termo_pesquisado}` : 
+                                "Nome da categoria"
+                            }
+                        </span>
+                        <hr />
+                    </div>
 
-                <section className="cards">
-                    {
-                        bolos.map((b: Bolo) => (
-                            <CardProduto nome={b.nome}
-                                descricao={b.descricao}
-                                preco={b.preco}
-                                imagens={b.imagens[0] ?? ""}
-                                peso={b.peso}
-                            />
-                        ))
-                    }
+                    <section className="cards">
+                        {
+                            bolos.map((b: Bolo) => (
+                                <CardProduto nome={b.nome}
+                                    descricao={b.descricao}
+                                    preco={b.preco}
+                                    imagens={b.imagens[0] ?? ""}
+                                    peso={b.peso}
+                                />
+                            ))
+                        }
 
+                    </section>
                 </section>
-            </section>
 
-            <a className="whatsapp" href={whatszap}
-                target="_blank">
-                <img src={whatszap} alt="icone do whatsapp" />
-            </a>
-        </main>
+                <a className="whatsapp" href={whatszap}
+                    target="_blank">
+                    <img src={whatszap} alt="icone do whatsapp" />
+                </a>
+            </main>
+        </>
     )
 }
